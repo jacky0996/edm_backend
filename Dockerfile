@@ -42,11 +42,8 @@ COPY --chown=www-data:www-data . /var/www
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# 切換到 www-data 用戶
-USER www-data
-
 # 暴露 9000 端口
 EXPOSE 9000
 
-# 使用 entrypoint 啟動
+# 使用 entrypoint 啟動 (此時為 root，待 setup 完成後才啟動 php-fpm)
 ENTRYPOINT ["entrypoint.sh"]
