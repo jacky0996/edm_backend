@@ -10,14 +10,11 @@ git config --global --add safe.directory /var/www
 echo "Ensuring file permissions..."
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-# 安裝相依套件 (若 vendor 不存在或需要更新)
-if [ ! -d "vendor" ]; then
-  echo "Installing dependencies via composer..."
-  # 以 root 身份執行但標明為安全，或使用 --no-dev 
-  composer install --no-interaction --optimize-autoloader --no-dev --quiet
-  # 安裝完後再次確認 vendor 權限
-  chown -R www-data:www-data /var/www/vendor
-fi
+# 強制執行相依套件安裝 (確保與 composer.lock 同步)
+echo "Syncing dependencies via composer..."
+composer install --no-interaction --optimize-autoloader --no-dev --quiet
+# 安裝完後再次確認 vendor 權限
+chown -R www-data:www-data /var/www/vendor
 
 # 等待資料庫準備就緒 (db 為 docker-compose.yml 內之服務名稱)
 echo "Waiting for database to be ready..."
@@ -29,6 +26,6 @@ echo "Database is ready!"
 # 執行資料庫遷移
 php artisan migrate --force
 
-# 啟動 php-fpm (此時 php-fpm 的設定檔通常會指定用 www-data 跑行程)
+# 啟動 PHP-FPM
 echo "Starting PHP-FPM..."
 exec php-fpm
