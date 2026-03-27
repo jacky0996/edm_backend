@@ -9,7 +9,7 @@ git config --global --add safe.directory /var/www
 # 檢查 .env 是否存在，若不存在則主動建立
 if [ ! -f ".env" ]; then
   echo "Missing .env file, generating default environment config..."
-  cat > .env <<EOF
+  cat > .env <<'EOF'
 APP_NAME=Laravel
 APP_ENV=local
 APP_KEY=base64:PIXXS+rR1dq70HfK2CS4gZ9Zmn/2PjSwlNEeGFDiQCY=
@@ -25,8 +25,8 @@ DB_CONNECTION=mysql
 DB_HOST=db
 DB_PORT=3306
 DB_DATABASE=edm_db
-DB_USERNAME=edm_user
-DB_PASSWORD=edm_password
+DB_USERNAME=developer
+DB_PASSWORD='wiN]d^yGwwZ$I_&N!Q0n'
 
 FILESYSTEM_DISK=local
 QUEUE_CONNECTION=database

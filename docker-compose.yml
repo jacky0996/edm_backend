@@ -40,13 +40,12 @@ services:
     environment:
       MYSQL_DATABASE: edm_db
       MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_USER: edm_user
-      MYSQL_PASSWORD: edm_password
       TZ: Asia/Taipei
     ports:
       - "3306:3306"
     volumes:
       - dbdata:/var/lib/mysql
+      - ./docker-compose/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - backend
 
