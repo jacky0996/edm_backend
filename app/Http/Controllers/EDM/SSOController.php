@@ -68,17 +68,12 @@ class SSOController extends Controller
 
         try {
             // =========================================================================
-            // 步驟 1. 嚴格遵守 Zero Hardcode：從 config 取得核心系統 API 與高權限憑證
+            // 步驟 1. 嚴格遵守 Zero Hardcode：從 config 取得核心系統 API
             // =========================================================================
             $hwsVerifyUrl = config('sso.hws_verify_url');
-            $coreApiKey = config('sso.core_api_key');
-            $coreClientId = config('sso.core_client_id');
             
-            // 中繼代理解耦：送出請求，將高權限防護憑證注入至標頭 (與 EDM 前端完全切割)
-            $response = Http::withHeaders([
-                'X-API-KEY' => $coreApiKey,
-                'X-CLIENT-ID' => $coreClientId
-            ])->timeout(5)->post($hwsVerifyUrl, [
+            // 中繼代理解耦：送出請求驗證 Token
+            $response = Http::timeout(5)->post($hwsVerifyUrl, [
                 'token' => $token
             ]);
 

@@ -39,8 +39,6 @@ L5_SWAGGER_CONST_HOST=http://localhost:81/api
 # EDM Identity Proxy SSO Configuration
 # ==========================================
 HWS_VERIFY_URL="https://uathws.hwacom.com/api/sso/verify-token"
-CORE_API_KEY="your_secret_key"
-CORE_CLIENT_ID="edm_backend_client"
 ALLOWED_EDM_IPS="*"
 EDM_FRONTEND_URL="https://uatedm.hwacom.com"
 EOF
