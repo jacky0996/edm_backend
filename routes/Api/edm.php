@@ -33,6 +33,6 @@ Route::prefix('edm')->group(function () {
     });
     /** SSO 驗證 API (掛載 IP 白名單防護) */
     Route::middleware([\App\Http\Middleware\WhitelistIpMiddleware::class])->group(function () {
-        Route::post('sso/verify-token', 'EDM\SSOController@verifyToken')->name('api.edm.sso.verify');
+        Route::post('/sso/verify-token', 'EDM\SSOController@verifyToken')->name('api.edm.sso.verify');
     });
 });
