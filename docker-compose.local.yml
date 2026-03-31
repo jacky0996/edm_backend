@@ -1,0 +1,26 @@
+# Local Development Override
+services:
+  # PHP 應用程式：開發模式 (包含熱更新與頻繁的重新整理)
+  app:
+    image: edm-backend-image:local
+    volumes:
+      - .:/var/www           # 強制本地 Source Code 熱掛載
+    environment:
+      - APP_DEBUG=true       # 開啟 Laravel 除錯
+      - APP_ENV=local        # 環境設為本地
+      - LOG_LEVEL=debug      # 顯示最詳細的日誌記錄
+
+  # Nginx：使用最寬鬆的設定檔 (default.conf)
+  nginx:
+    volumes:
+      - .:/var/www
+      - ./docker-compose/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "81:80"              # 維持 81 port，防止與其他本地 Web 衝到
+
+  # MySQL：開發模式，必須露出 3306 方便開發人員登入
+  db:
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password

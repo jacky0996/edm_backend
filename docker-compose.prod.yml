@@ -1,0 +1,23 @@
+# Production Override for Docker Compose
+services:
+  # PHP 應用程式：生產模式 (不掛載本地 Source，使用 Dockerfile COPY 進去的程式碼)
+  app:
+    image: edm-backend-image:prod
+    restart: always
+    environment:
+      - APP_DEBUG=false
+      - APP_ENV=production
+
+  # Nginx：指向生產環境設定檔 (prod.conf)
+  nginx:
+    restart: always
+    volumes:
+      - ./docker-compose/nginx/prod.conf:/etc/nginx/conf.d/default.conf
+    # 生產環境通常由外部 Load Balancer (例如雲端的 LB) 或 Host 端的 443 接入
+    ports:
+      - "80:80"
+
+  # MySQL：生產環境加固，不直接露出 3306 埠到公網
+  db:
+    restart: always
+    ports: !reset [] # 移除對外的 3306 映射，僅允許 Docker 內部訪問
