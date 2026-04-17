@@ -2,7 +2,7 @@
 
 namespace App\Jobs\Common;
 
-use App\Services\Common\AwsSesService;
+use App\Services\AwsSesService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
