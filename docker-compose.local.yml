@@ -11,7 +11,7 @@ services:
       - APP_DEBUG=true
       - APP_ENV=local
       - LOG_LEVEL=debug
-      - HWS_VERIFY_URL=http://host.docker.internal:8000/api/edm/sso/verify-token
+      - HWS_VERIFY_URL=http://host.docker.internal/api/edm/sso/verify-token
     networks:
       - backend
 
@@ -30,7 +30,7 @@ services:
   # MySQL：開發模式，必須露出 3306 方便開發人員登入
   db:
     ports:
-      - "3306:3306"
+      - "3307:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=root_password
     networks:
