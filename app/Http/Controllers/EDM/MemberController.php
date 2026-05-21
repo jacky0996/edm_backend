@@ -8,6 +8,7 @@ use App\Models\EDM\Member;
 use App\Models\EDM\Mobiles;
 use App\Models\EDM\Organization;
 use App\Repositories\EDM\MemberRepository;
+use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -26,13 +27,20 @@ class MemberController extends Controller
     protected MemberRepository $memberRepository;
 
     /**
+     * 使用者資訊服務
+     */
+    protected UserService $userService;
+
+    /**
      * MemberController 建構子
      *
      * @param  MemberRepository  $memberRepository  注入會員相關資料處理邏輯
+     * @param  UserService  $userService  注入使用者資訊處理服務
      */
-    public function __construct(MemberRepository $memberRepository)
+    public function __construct(MemberRepository $memberRepository, UserService $userService)
     {
         $this->memberRepository = $memberRepository;
+        $this->userService = $userService;
     }
 
     /**
@@ -47,7 +55,7 @@ class MemberController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'page' => 'nullable|integer|min:1',
-            'pageSize' => 'nullable|integer|min:1|max:100',
+            'pageSize' => 'nullable|integer|min:1|max:200',
         ]);
 
         if ($validator->fails()) {
@@ -61,7 +69,12 @@ class MemberController extends Controller
 
         $page = (int) $request->input('page', 1);
         $pageSize = (int) $request->input('pageSize', 20);
-        $data = $this->memberRepository->GetList($request->all());
+        $user = $this->userService->getUserFromHeader($request);
+        $params = $request->all();
+        if (! empty($user['email'])) {
+            $params['creator_email'] = $user['email'];
+        }
+        $data = $this->memberRepository->GetList($params);
         $offset = ($page - 1) * $pageSize;
         $pagedData = array_slice($data, $offset, $pageSize);
 
@@ -136,6 +149,7 @@ class MemberController extends Controller
 
         $groupId = (int) $request->input('group_id');
         $data = $request->input('data');
+        $creatorEmail = $this->userService->getUserFromHeader($request)['email'] ?? null;
         $results = [];
         foreach ($data as $item) {
             // 1. 處理組織 (Organization) - 優先處理以作為人員判定依據
@@ -179,6 +193,7 @@ class MemberController extends Controller
                     'name' => $item['中文姓名'],
                     'status' => $item['status'] ?? 1,
                     'sales_email' => $item['負責業務email'] ?? null,
+                    'creator_email' => $creatorEmail,
                 ]);
             }
 

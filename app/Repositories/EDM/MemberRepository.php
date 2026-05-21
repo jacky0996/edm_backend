@@ -20,6 +20,10 @@ class MemberRepository
     {
         return Member::query()
             ->with('emails')
+            // 建立者過濾：僅看自己建立的會員
+            ->when(! empty($params['creator_email']), function ($query) use ($params) {
+                $query->where('creator_email', $params['creator_email']);
+            })
             // 姓名模糊搜尋
             ->when(! empty($params['name']), function ($query) use ($params) {
                 $query->where('name', 'like', '%'.$params['name'].'%');

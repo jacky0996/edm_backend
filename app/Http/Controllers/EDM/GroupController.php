@@ -54,7 +54,7 @@ class GroupController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'page' => 'nullable|integer|min:1',
-            'pageSize' => 'nullable|integer|min:1|max:100',
+            'pageSize' => 'nullable|integer|min:1|max:200',
         ]);
 
         if ($validator->fails()) {
@@ -68,7 +68,12 @@ class GroupController extends Controller
 
         $page = (int) $request->input('page', 1);
         $pageSize = (int) $request->input('pageSize', 20);
-        $data = $this->groupRepository->GetList($request->all());
+        $user = $this->userService->getUserFromHeader($request);
+        $params = $request->all();
+        if (! empty($user['email'])) {
+            $params['creator_email'] = $user['email'];
+        }
+        $data = $this->groupRepository->GetList($params);
         $offset = ($page - 1) * $pageSize;
         $pagedData = array_slice($data, $offset, $pageSize);
 

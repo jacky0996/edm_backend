@@ -46,7 +46,7 @@ class EventController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'page' => 'nullable|integer|min:1',
-            'pageSize' => 'nullable|integer|min:1|max:100',
+            'pageSize' => 'nullable|integer|min:1|max:200',
         ]);
 
         if ($validator->fails()) {
@@ -60,7 +60,12 @@ class EventController extends Controller
 
         $page = (int) $request->input('page', 1);
         $pageSize = (int) $request->input('pageSize', 20);
-        $data = $this->eventRepository->GetList($request->all());
+        $user = $this->userService->getUserFromHeader($request);
+        $params = $request->all();
+        if (! empty($user['email'])) {
+            $params['creator_email'] = $user['email'];
+        }
+        $data = $this->eventRepository->GetList($params);
         $offset = ($page - 1) * $pageSize;
         $pagedData = array_slice($data, $offset, $pageSize);
 
@@ -114,7 +119,6 @@ class EventController extends Controller
             'end_time' => 'required|date|after_or_equal:start_time',
             'landmark' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
-            'img_url' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -145,7 +149,6 @@ class EventController extends Controller
             $event->end_time = $request->input('end_time');
             $event->landmark = $request->input('landmark');
             $event->address = $request->input('address');
-            $event->img_url = $request->input('img_url');
             $event->type = $request->input('type');
             $event->status = 0;
             $event->is_approve = $is_approve;
@@ -185,7 +188,6 @@ class EventController extends Controller
             'end_time' => 'required|date|after_or_equal:start_time',
             'landmark' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
-            'img_url' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -217,7 +219,6 @@ class EventController extends Controller
         $event->end_time = $request->input('end_time');
         $event->landmark = $request->input('landmark');
         $event->address = $request->input('address');
-        $event->img_url = $request->input('img_url');
         $event->type = $request->input('type');
         $event->status = 0;
         $event->is_approve = $is_approve;
@@ -605,6 +606,45 @@ class EventController extends Controller
             'status' => $result['status'],
             'message' => $result['message'] ?? null,
         ]);
+    }
+
+    /**
+     * 取得活動的問卷填寫統計
+     *
+     * 用於活動數據儀表板。把 Google 問卷的填寫者 email 與 event_relation 內的邀請者 email 比對，
+     * 區分邀請名單內已填寫 / 未填寫 / 邀請名單外填寫者三類。
+     */
+    public function getSurveyStats(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'event_id' => 'required|integer|exists:event,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '欄位驗證失敗',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $data = $this->googleFormService->getSurveyStatsByEventId($request->input('event_id'));
+
+            return response()->json([
+                'code' => 0,
+                'status' => true,
+                'data' => $data,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 1,
+                'status' => false,
+                'message' => '取得問卷統計失敗',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

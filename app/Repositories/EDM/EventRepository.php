@@ -19,8 +19,14 @@ class EventRepository
     public function GetList(array $params)
     {
         return Event::query()
-            ->when(! empty($params['name']), function ($query) use ($params) {
-                $query->where('name', 'like', '%'.$params['name'].'%');
+            // 建立者過濾：僅看自己建立的活動
+            ->when(! empty($params['creator_email']), function ($query) use ($params) {
+                $query->where('creator_email', $params['creator_email']);
+            })
+            // event 表的標題欄位為 title，相容前端帶 name / title 兩種命名
+            ->when(! empty($params['title']) || ! empty($params['name']), function ($query) use ($params) {
+                $keyword = $params['title'] ?? $params['name'];
+                $query->where('title', 'like', '%'.$keyword.'%');
             })
             ->when(isset($params['status']) && in_array($params['status'], [0, 1, '0', '1'], true), function ($query) use ($params) {
                 $query->where('status', $params['status']);
