@@ -30,34 +30,28 @@ use Illuminate\Support\Facades\Log;
  */
 class GoogleApiService
 {
-    protected $client;
+    protected GoogleOAuthService $oauth;
 
-    public function __construct(Client $client)
+    protected ?Client $client = null;
+
+    public function __construct(GoogleOAuthService $oauth)
     {
-        $this->client = $client;
-        $this->client->setApplicationName('EDM Google API');
-        $this->client->setScopes([
-            Forms::FORMS_RESPONSES_READONLY,
-            Forms::FORMS_BODY_READONLY,
-            Forms::FORMS_BODY,
-        ]);
+        $this->oauth = $oauth;
+    }
 
-        $credentials = [
-            'type' => env('GOOGLE_CLOUD_ACCOUNT_TYPE'),
-            'project_id' => env('GOOGLE_CLOUD_PROJECT_ID'),
-            'private_key_id' => env('GOOGLE_CLOUD_PRIVATE_KEY_ID'),
-            'private_key' => str_replace('\\n', "\n", env('GOOGLE_CLOUD_PRIVATE_KEY', '')),
-            'client_email' => env('GOOGLE_CLOUD_CLIENT_EMAIL'),
-            'client_id' => env('GOOGLE_CLOUD_CLIENT_ID'),
-            'auth_uri' => env('GOOGLE_CLOUD_AUTH_URI'),
-            'token_uri' => env('GOOGLE_CLOUD_TOKEN_URI'),
-            'auth_provider_x509_cert_url' => env('GOOGLE_CLOUD_AUTH_PROVIDER_CERT_URL'),
-            'client_x509_cert_url' => env('GOOGLE_CLOUD_CLIENT_CERT_URL'),
-        ];
-
-        if (! empty($credentials['client_email']) && ! empty($credentials['private_key'])) {
-            $this->client->setAuthConfig($credentials);
+    /**
+     * 取得已授權的 Google\Client(每次呼叫都會檢查 / 自動 refresh token)。
+     *
+     * @throws \RuntimeException 當系統尚未完成 OAuth 授權時
+     */
+    protected function client(): Client
+    {
+        if ($this->client !== null) {
+            return $this->client;
         }
+        $this->client = $this->oauth->getAuthorizedClient();
+
+        return $this->client;
     }
 
     public function extractFormId($url)
@@ -76,7 +70,7 @@ class GoogleApiService
     public function getFormDetails($formId)
     {
         try {
-            $service = new Forms($this->client);
+            $service = new Forms($this->client());
             $form = $service->forms->get($formId);
 
             return [
@@ -93,7 +87,7 @@ class GoogleApiService
     public function getFormSummary($formId)
     {
         try {
-            $service = new Forms($this->client);
+            $service = new Forms($this->client());
             $responses = $service->forms_responses->listFormsResponses($formId);
             $responsesList = $responses->getResponses() ?? [];
             $formBody = $service->forms->get($formId);
@@ -114,7 +108,7 @@ class GoogleApiService
     public function createForm($title)
     {
         try {
-            $service = new Forms($this->client);
+            $service = new Forms($this->client());
             $formBody = new Form;
             $info = new Info;
             $info->setTitle($title);
@@ -138,7 +132,7 @@ class GoogleApiService
     public function syncFormItems($formId, $questions, $title = null, $description = null)
     {
         try {
-            $service = new Forms($this->client);
+            $service = new Forms($this->client());
             $form = $service->forms->get($formId);
             $currentItems = $form->getItems() ?? [];
             $requests = [];
@@ -259,7 +253,7 @@ class GoogleApiService
     public function batchUpdateQuestions($formId, $questions, $description = null)
     {
         try {
-            $service = new Forms($this->client);
+            $service = new Forms($this->client());
             $requests = [];
             if ($description) {
                 $updateInfo = new UpdateFormInfoRequest;
@@ -291,7 +285,7 @@ class GoogleApiService
     public function getFormFillList($formId)
     {
         try {
-            $service = new Forms($this->client);
+            $service = new Forms($this->client());
             $responses = $service->forms_responses->listFormsResponses($formId);
             $responsesList = $responses->getResponses() ?? [];
             $formBody = $service->forms->get($formId);

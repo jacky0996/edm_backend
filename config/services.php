@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'google_oauth' => [
+        'client_id' => env('GOOGLE_OAUTH_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_OAUTH_CLIENT_SECRET'),
+        'redirect_uri' => env('GOOGLE_OAUTH_REDIRECT_URI'),
+        // 授權成功後回前端的落地頁
+        'frontend_landing' => env('GOOGLE_OAUTH_FRONTEND_LANDING', env('EDM_FRONTEND_URL').'/admin/google-auth'),
+    ],
+
 ];

@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\EDM\Event;
+use App\Models\Google\GoogleFormResponse;
 use App\Repositories\Google\GoogleFormRepository;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Google 問卷業務服務
@@ -256,5 +258,102 @@ class GoogleFormService
     public function approvePendingByEventId($eventId): int
     {
         return $this->googleFormRepository->approvePendingByEventId($eventId);
+    }
+
+    /**
+     * 取得活動的問卷填寫統計
+     *
+     * 將 google_form_response.answers 內的 email 與 event_relation.email_id → email.address 比對，
+     * 區分「邀請名單內已填」/「邀請名單內未填」/「邀請名單外填寫者」。
+     *
+     * @return array{
+     *   has_google_form: bool,
+     *   total_invited: int,
+     *   filled_invited: int,
+     *   unfilled_invited: int,
+     *   non_invited_responses: int,
+     *   total_responses: int
+     * }
+     */
+    public function getSurveyStatsByEventId($eventId): array
+    {
+        $googleForm = $this->googleFormRepository->findByEventId($eventId);
+
+        $invitedEmails = DB::table('event_relation')
+            ->join('email', 'event_relation.email_id', '=', 'email.id')
+            ->where('event_relation.event_id', $eventId)
+            ->whereNull('event_relation.deleted_at')
+            ->whereNull('email.deleted_at')
+            ->pluck('email.email')
+            ->map(fn ($e) => strtolower(trim((string) $e)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $totalInvited = count($invitedEmails);
+
+        if (! $googleForm) {
+            return [
+                'has_google_form' => false,
+                'total_invited' => $totalInvited,
+                'filled_invited' => 0,
+                'unfilled_invited' => $totalInvited,
+                'non_invited_responses' => 0,
+                'total_responses' => 0,
+            ];
+        }
+
+        $responses = GoogleFormResponse::where('event_id', $eventId)->get();
+        $invitedSet = array_flip($invitedEmails);
+        $filledInvitedEmails = [];
+        $nonInvited = 0;
+
+        foreach ($responses as $response) {
+            $email = $this->extractEmailFromAnswers($response->answers ?? []);
+            if (! $email) {
+                $nonInvited++;
+
+                continue;
+            }
+            if (isset($invitedSet[$email])) {
+                $filledInvitedEmails[$email] = true;
+            } else {
+                $nonInvited++;
+            }
+        }
+
+        $filledInvited = count($filledInvitedEmails);
+
+        return [
+            'has_google_form' => true,
+            'total_invited' => $totalInvited,
+            'filled_invited' => $filledInvited,
+            'unfilled_invited' => max(0, $totalInvited - $filledInvited),
+            'non_invited_responses' => $nonInvited,
+            'total_responses' => $responses->count(),
+        ];
+    }
+
+    /**
+     * 從 answers 陣列中萃取 email 欄位（標題為「電子郵件」/ email / e-mail 任一）。
+     */
+    private function extractEmailFromAnswers(array $answers): ?string
+    {
+        foreach ($answers as $ans) {
+            $title = strtolower((string) ($ans['title'] ?? ''));
+            $value = trim((string) ($ans['answer'] ?? ''));
+            if ($value === '') {
+                continue;
+            }
+            if (str_contains($title, '電子郵件') || str_contains($title, 'email') || str_contains($title, 'e-mail') || str_contains($title, 'gmail')) {
+                return strtolower($value);
+            }
+            if (filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                return strtolower($value);
+            }
+        }
+
+        return null;
     }
 }
