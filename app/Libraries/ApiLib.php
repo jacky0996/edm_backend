@@ -217,7 +217,7 @@ class ApiLib
             $mailID_url = config('mail.mail_url').'/api/sendSingleMail';
             $send_payload = [
                 'creator' => 1,
-                'source' => 'HWS',
+                'source' => 'EDM',
                 'from' => config('mail.from.address'),
                 'to' => $mail,
                 'subject' => 'crm_mail',

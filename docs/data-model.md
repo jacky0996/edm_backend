@@ -111,7 +111,6 @@ erDiagram
         string   event_number "Bxxx 格式"
         string   title "255 chars"
         string   summary "255 chars, nullable"
-        text     img_url
         longtext content
         datetime start_time
         datetime end_time
@@ -119,7 +118,7 @@ erDiagram
         string   address
         int      type "活動類別"
         int      status "活動建立狀態"
-        string   creator_email
+        string   creator_email "nullable"
         int      is_approve "0|1, default 0"
         int      is_display "0|1, default 0"
         int      is_qrcode  "0|1, default 0"

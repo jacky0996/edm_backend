@@ -26,8 +26,6 @@ EDM Backend 是 [Middle Platform](../../../Middle_Platform) SSO 的下游消費�
 - EDM Backend 用 `config('app.key')` (Laravel 的 `APP_KEY`,內容**等同**中台的 `SECRET_KEY`)
 - `AuthorizeJwt` middleware 用 `firebase/php-jwt` 的 `JWT::decode()` 直接驗
 
-同時保留 `HWS_VERIFY_URL` 環境變數作為備援(目前未使用,但保留 service-to-service verify 的可能性)。
-
 ## Considered Options — 還評估過哪些?
 
 ### 選項 1 — 本地驗證 + 共享 APP_KEY (HS256) 【選中】
@@ -79,7 +77,6 @@ EDM Backend 是 [Middle Platform](../../../Middle_Platform) SSO 的下游消費�
 
 - 第二個業務系統加入時(從 1 個業務系統 → 2 個),重新評估是否該升 RS256
 - 監控 401 異常率,若異常飆高可能是 key 不對齊
-- `HWS_VERIFY_URL` 設定保留,作為「臨時撤銷」機制的備援(若有需要可改成「先本地驗 → 異常時回中台二次確認」)
 
 ## References
 

@@ -33,14 +33,14 @@ flowchart TB
         host_mp["🔐 Middle Platform<br/>(:80, 鄰居 compose)"]
     end
 
-    extra["host.docker.internal:host-gateway<br/>(讓 app 訪問 host 服務)"]
+    extra["MiddlePlatform:host-gateway<br/>(讓 app 訪問 host 服務)"]
 
     ext_ses["✉ AWS SES<br/>(internet)"]
     ext_google["📋 Google APIs<br/>(internet)"]
 
-    dev -- "http://localhost:81/*" --> nginx
+    dev -- "EdmBackend/*" --> nginx
     fe -- "POST /api/edm/* + JWT" --> nginx
-    db_ide -- "localhost:3307" --> db
+    db_ide -- "EdmBackend (DB)" --> db
 
     app -.-> extra
     extra -.-> host_mp
@@ -135,7 +135,7 @@ flowchart TB
 
 | 變數 | 說明 | 預設(dev) |
 |---|---|---|
-| `APP_URL` | 應用程式網址 | `http://localhost:81` |
+| `APP_URL` | 應用程式網址 | `EdmBackend` |
 | `APP_KEY` | Laravel 主密鑰,**亦是 JWT HS256 密鑰** | `php artisan key:generate` 產生 |
 | `APP_ENV` | 環境 | `local` |
 | `APP_DEBUG` | Debug mode | `true`(dev) |
@@ -146,7 +146,6 @@ flowchart TB
 | `DB_USERNAME` / `DB_PASSWORD` | DB 帳密(由 `init.sql` 建立) | `developer` / — |
 | `QUEUE_CONNECTION` | Queue driver | `database` |
 | `CACHE_STORE` | Cache driver | `database` |
-| `HWS_VERIFY_URL` | 中台 SSO verify endpoint(備援用) | `http://host.docker.internal/api/edm/sso/verify-token` |
 | `ALLOWED_EDM_IPS` | API 白名單 IP(逗號分隔,`*` 不限) | `*`(dev)|
 | `EDM_FRONTEND_URL` | CORS 允許 origin | EDM 前端 URL |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_DEFAULT_REGION` | AWS SES 寄信憑證 | — |
@@ -178,11 +177,11 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 
 | 服務 | 網址 |
 |---|---|
-| API Root | http://localhost:81 |
-| Swagger UI (Scramble) | http://localhost:81/docs/api |
-| Health Check | http://localhost:81/up |
-| Telescope(僅 dev) | http://localhost:81/telescope |
-| MySQL (DB IDE) | `localhost:3307` / 帳號 `developer` |
+| API Root | EdmBackend |
+| Swagger UI (Scramble) | EdmBackend/docs/api |
+| Health Check | EdmBackend/up |
+| Telescope(僅 dev) | EdmBackend/telescope |
+| MySQL (DB IDE) | `EdmBackend (DB)` / 帳號 `<DEV_USER>` |
 
 ### 4.2 生產環境
 
@@ -251,7 +250,7 @@ docker exec -d edm-backend-app php artisan schedule:work
 
 | 檢查 | 方式 | 預期回應 |
 |---|---|---|
-| Web 是否就緒 | `curl http://localhost:81/up` | HTTP 200(Laravel 內建) |
+| Web 是否就緒 | `curl EdmBackend/up` | HTTP 200(Laravel 內建) |
 | DB 是否就緒 | `docker exec edm-db mysqladmin ping -uroot -p<root>` | `mysqld is alive` |
 | Queue 是否在跑 | `docker exec edm-backend-app php artisan queue:monitor default --max=100` | (列出狀態) |
 
@@ -261,7 +260,7 @@ docker exec -d edm-backend-app php artisan schedule:work
 
 | 工具 | 路徑 | 用途 |
 |---|---|---|
-| **Laravel Telescope** | http://localhost:81/telescope | 請求 / Query / Job / Exception 全紀錄(僅 dev) |
+| **Laravel Telescope** | EdmBackend/telescope | 請求 / Query / Job / Exception 全紀錄(僅 dev) |
 | **Laravel Pail** | `docker exec -it edm-backend-app php artisan pail` | Terminal 即時串流 log |
 | **failed_jobs 表** | `php artisan queue:failed` | 失敗 Job 一覽,可 retry |
 | **Container log** | `docker logs -f edm-backend-app` | nginx / php-fpm 標準輸出 |

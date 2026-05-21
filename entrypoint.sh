@@ -54,7 +54,7 @@ chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 # 強制執行相依套件安裝 (確保與 composer.lock 同步)
 echo "Syncing dependencies via composer..."
-composer install 
+composer install
 # 安裝完後再次確認 vendor 權限
 chown -R www-data:www-data /var/www/vendor
 

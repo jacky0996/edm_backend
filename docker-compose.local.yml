@@ -11,7 +11,6 @@ services:
       - APP_DEBUG=true
       - APP_ENV=local
       - LOG_LEVEL=debug
-      - HWS_VERIFY_URL=http://host.docker.internal/api/edm/sso/verify-token
     networks:
       - backend
 
