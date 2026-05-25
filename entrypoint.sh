@@ -58,9 +58,9 @@ composer install
 # 安裝完後再次確認 vendor 權限
 chown -R www-data:www-data /var/www/vendor
 
-# 等待資料庫準備就緒 (db 為 docker-compose.yml 內之服務名稱)
+# 等待資料庫準備就緒 (db 為 docker-compose.yml 內之服務名稱,postgres 預設 5432)
 echo "Waiting for database to be ready..."
-until nc -z db 3306; do
+until nc -z db 5432; do
   sleep 1
 done
 echo "Database is ready!"

@@ -1,0 +1,71 @@
+# Cloud Run 用 production image。
+#
+# 與 dev Dockerfile 的差異:
+#   - 一個 container 內同時跑 nginx + php-fpm + supervisord(Cloud Run 只能跑單 container)
+#   - 監聽 Cloud Run 注入的 $PORT(預設 8080),取代原本固定 80
+#   - 不掛 bind mount,程式碼直接 COPY 進 image(immutable)
+#   - composer install 在 build 期完成,加快冷啟動
+#   - 啟動指令直接 exec supervisord,讓 SIGTERM 正確傳遞
+
+# ============= Composer builder =============
+FROM composer:2 AS composer_stage
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+# 先裝沒 autoload 的依賴(autoload 要等 code 進來)
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction
+
+# 把 code 拉進來再 dump optimized autoload
+COPY . .
+RUN composer dump-autoload --optimize --no-dev \
+    && composer install --no-dev --optimize-autoloader --no-interaction
+
+# ============= Runtime stage =============
+FROM php:8.2-fpm
+
+ENV TZ=Asia/Taipei
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+WORKDIR /var/www
+
+# 系統依賴:nginx + supervisord + libpq + 影像處理 + Postgres driver
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        nginx \
+        supervisor \
+        libpng-dev \
+        libjpeg62-turbo-dev \
+        libfreetype6-dev \
+        libpq-dev \
+        libzip-dev \
+        libonig-dev \
+        netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-install pdo_pgsql mbstring zip exif pcntl \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd
+
+# 從 composer stage 把所有東西(vendor + code)複製進來
+COPY --from=composer_stage --chown=www-data:www-data /app /var/www
+
+# nginx + supervisord 設定檔
+COPY docker-compose/nginx/cloudrun.conf /etc/nginx/sites-available/default
+COPY docker-compose/supervisor/cloudrun.conf /etc/supervisor/conf.d/cloudrun.conf
+
+# 移除 nginx 預設 server,只用我們的
+RUN rm -f /etc/nginx/sites-enabled/default \
+    && ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+
+# entrypoint:替換 PORT、跑 migrate、啟 supervisord
+COPY entrypoint.prod.sh /usr/local/bin/entrypoint.prod.sh
+RUN chmod +x /usr/local/bin/entrypoint.prod.sh
+
+# 確保 Laravel 寫得了 storage / cache
+RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache \
+    && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
+# Cloud Run 期望容器監聽 $PORT
+ENV PORT=8080
+EXPOSE 8080
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.prod.sh"]

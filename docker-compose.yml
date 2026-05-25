@@ -12,6 +12,9 @@ services:
       - .:/var/www
     environment:
       TZ: Asia/Taipei
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - backend
 
@@ -32,20 +35,27 @@ services:
     networks:
       - backend
 
-  # MySQL 8.4 資料庫
+  # PostgreSQL 16 資料庫
   db:
-    image: mysql:8.4
+    image: postgres:16
     container_name: edm-db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: edm_db
-      MYSQL_ROOT_PASSWORD: root_password
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       TZ: Asia/Taipei
+      PGTZ: Asia/Taipei
     ports:
-      - "3307:3306"
+      # host 5433 → container 5432(5432 留給中台 Middle_Platform)
+      - "5433:5432"
     volumes:
-      - dbdata:/var/lib/mysql
-      - ./docker-compose/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - backend
 
