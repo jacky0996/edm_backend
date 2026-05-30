@@ -79,7 +79,10 @@ class SsoJwtVerifier
     {
         $ttl = (int) config('sso.jwks_cache_ttl', 3600);
 
-        return Cache::remember(self::JWKS_CACHE_KEY, $ttl, function () {
+        // Cache 的是 JWKS 原始 JSON(可序列化),每次再 parse 成 Key 物件。
+        // 不能直接 cache parseKeySet 結果 — Key 內含 OpenSSLAsymmetricKey,
+        // PHP 8 起此型別禁止 serialize,file/database cache driver 都會炸。
+        $jwks = Cache::remember(self::JWKS_CACHE_KEY, $ttl, function () {
             $url = config('sso.jwks_url');
             if (! $url) {
                 throw new Exception('sso.jwks_url is not configured');
@@ -92,7 +95,9 @@ class SsoJwtVerifier
                 );
             }
 
-            return JWK::parseKeySet($response->json());
+            return $response->json();
         });
+
+        return JWK::parseKeySet($jwks);
     }
 }
