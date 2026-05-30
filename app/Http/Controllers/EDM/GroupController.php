@@ -54,7 +54,7 @@ class GroupController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'page' => 'nullable|integer|min:1',
-            'pageSize' => 'nullable|integer|min:1|max:200',
+            'pageSize' => 'nullable|integer|min:1|max:10000',
         ]);
 
         if ($validator->fails()) {
